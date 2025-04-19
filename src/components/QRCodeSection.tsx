@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Table } from "@/types/supabase";
+import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
 
 export const QRCodeSection = () => {
   const [tables, setTables] = useState<Table[]>([]);
@@ -54,20 +56,31 @@ export const QRCodeSection = () => {
   return (
     <div className="container py-16">
       <div className="text-center mb-12">
-        <h2 className="text-3xl font-bold mb-2">Nos QR Codes</h2>
-        <p className="text-lg text-muted-foreground">Scannez le QR code de votre table pour passer commande</p>
+        <h2 className="text-3xl font-bold mb-2 text-primary animate-fade-in">Nos QR Codes</h2>
+        <p className="text-lg text-muted-foreground animate-fade-in delay-100">Scannez le QR code de votre table pour passer commande</p>
       </div>
       
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {tables.map((table) => (
-          <div key={table.id} className="bg-card rounded-lg p-4 flex flex-col items-center shadow-md">
+          <div key={table.id} className="bg-card rounded-lg p-4 flex flex-col items-center shadow-md hover:shadow-xl transition-all duration-300 transform hover:scale-105 border border-primary/20">
             <img 
               src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(getTableUrl(table.numero))}`}
               alt={`QR Code Table ${table.numero}`}
               className="mb-3"
             />
-            <p className="font-semibold">Table {table.numero}</p>
-            <p className="text-sm text-muted-foreground">Scannez-moi</p>
+            <p className="font-semibold text-lg text-primary">Table {table.numero}</p>
+            <p className="text-sm text-muted-foreground mb-2">Scannez-moi</p>
+            <div className="mt-2 text-xs text-muted-foreground truncate w-full text-center">
+              <a 
+                href={getTableUrl(table.numero)} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline flex items-center justify-center gap-1"
+              >
+                <ExternalLink size={12} />
+                {getTableUrl(table.numero)}
+              </a>
+            </div>
           </div>
         ))}
       </div>

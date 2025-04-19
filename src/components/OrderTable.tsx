@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -7,83 +8,83 @@ import { OrderStatusBadge } from "./OrderStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { Commande } from "@/types/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Check } from "lucide-react";
+import { Clock, Check, AlertTriangle } from "lucide-react";
 
 export const OrderTable = () => {
   const [orders, setOrders] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchOrders = async () => {
+  const fetchOrders = async () => {
+    try {
+      // Données statiques de secours
+      const mockOrders: Commande[] = [
+        {
+          id: "1",
+          table_id: "table-1",
+          plats: [
+            { id: "1", nom: "Attiéké au poisson", prix: 5000, quantity: 2 },
+            { id: "2", nom: "Bissap", prix: 2000, quantity: 3 }
+          ],
+          statut: "en attente",
+          methode_paiement: "especes",
+          heure_commande: new Date().toISOString(),
+          table_numero: 1
+        },
+        {
+          id: "2",
+          table_id: "table-3",
+          plats: [
+            { id: "2", nom: "Poulet yassa", prix: 6500, quantity: 1 },
+            { id: "4", nom: "Tarte tatin", prix: 4000, quantity: 2 }
+          ],
+          statut: "en preparation",
+          methode_paiement: "carte",
+          heure_commande: new Date().toISOString(),
+          table_numero: 3
+        }
+      ];
+      
       try {
-        // Données statiques de secours
-        const mockOrders: Commande[] = [
-          {
-            id: "1",
-            table_id: "table-1",
-            plats: [
-              { id: "1", nom: "Attiéké au poisson", prix: 5000, quantity: 2 },
-              { id: "2", nom: "Bissap", prix: 2000, quantity: 3 }
-            ],
-            statut: "en attente",
-            methode_paiement: "especes",
-            heure_commande: new Date().toISOString(),
-            table_numero: 1
-          },
-          {
-            id: "2",
-            table_id: "table-3",
-            plats: [
-              { id: "2", nom: "Poulet yassa", prix: 6500, quantity: 1 },
-              { id: "4", nom: "Tarte tatin", prix: 4000, quantity: 2 }
-            ],
-            statut: "en preparation",
-            methode_paiement: "carte",
-            heure_commande: new Date().toISOString(),
-            table_numero: 3
-          }
-        ];
-        
-        try {
-          // Récupérer les commandes avec les informations de la table
-          const { data, error } = await supabase
-            .from('commandes')
-            .select(`
-              *,
-              table:table_id (
-                numero
-              )
-            `)
-            .order('heure_commande', { ascending: false });
+        // Récupérer les commandes avec les informations de la table
+        const { data, error } = await supabase
+          .from('commandes')
+          .select(`
+            *,
+            table:table_id (
+              numero
+            )
+          `)
+          .order('heure_commande', { ascending: false });
 
-          if (error) {
-            throw error;
-          }
+        if (error) {
+          throw error;
+        }
 
-          // Formater les données pour l'affichage
-          if (data && data.length > 0) {
-            const formattedOrders = data.map((order: any) => ({
-              ...order,
-              table_numero: order.table.numero,
-            }));
-            setOrders(formattedOrders);
-          } else {
-            // Fallback aux données statiques si aucune commande
-            setOrders(mockOrders);
-          }
-        } catch (error) {
-          console.error('Erreur lors de la récupération des commandes:', error);
-          // Fallback aux données statiques en cas d'erreur
+        // Formater les données pour l'affichage
+        if (data && data.length > 0) {
+          const formattedOrders = data.map((order: any) => ({
+            ...order,
+            table_numero: order.table?.numero || 0,
+          }));
+          setOrders(formattedOrders);
+        } else {
+          // Fallback aux données statiques si aucune commande
           setOrders(mockOrders);
         }
       } catch (error) {
         console.error('Erreur lors de la récupération des commandes:', error);
-      } finally {
-        setLoading(false);
+        // Fallback aux données statiques en cas d'erreur
+        setOrders(mockOrders);
       }
-    };
+    } catch (error) {
+      console.error('Erreur lors de la récupération des commandes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchOrders();
 
     // Mise en place de l'écoute en temps réel des changements
@@ -96,7 +97,8 @@ export const OrderTable = () => {
           schema: 'public',
           table: 'commandes'
         },
-        () => {
+        (payload) => {
+          console.log('Changement détecté:', payload);
           // Rafraîchir les commandes quand il y a un changement
           fetchOrders();
         }
@@ -110,20 +112,26 @@ export const OrderTable = () => {
 
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
+      setLoading(true);
+      console.log(`Mise à jour de la commande ${orderId} vers le statut: ${newStatus}`);
+      
       const { error } = await supabase
         .from('commandes')
         .update({ statut: newStatus })
         .eq('id', orderId);
 
       if (error) {
+        console.error('Erreur détaillée:', error);
         throw error;
       }
 
       toast({
         title: "Statut mis à jour",
         description: "Le statut de la commande a été mis à jour avec succès",
+        className: "bg-green-50 border-green-200 text-green-800",
       });
 
+      // Mise à jour locale immédiate pour une meilleure réactivité
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId ? { ...order, statut: newStatus as Commande['statut'] } : order
@@ -136,6 +144,8 @@ export const OrderTable = () => {
         title: "Erreur",
         description: "Impossible de mettre à jour le statut de la commande",
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -146,7 +156,7 @@ export const OrderTable = () => {
           <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'en preparation')}
-            className="bg-blue-500 hover:bg-blue-600 transition-colors"
+            className="bg-blue-500 hover:bg-blue-600 transition-colors transform hover:scale-105"
           >
             <Clock className="mr-2 h-4 w-4" />
             Commencer la préparation
@@ -157,7 +167,7 @@ export const OrderTable = () => {
           <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'pret')}
-            className="bg-green-500 hover:bg-green-600 transition-colors"
+            className="bg-green-500 hover:bg-green-600 transition-colors transform hover:scale-105"
           >
             <Check className="mr-2 h-4 w-4" />
             Marquer comme prêt
@@ -168,7 +178,7 @@ export const OrderTable = () => {
           <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'servi')}
-            className="bg-purple-500 hover:bg-purple-600 transition-colors"
+            className="bg-purple-500 hover:bg-purple-600 transition-colors transform hover:scale-105"
           >
             Marquer comme servi
           </Button>
@@ -181,7 +191,7 @@ export const OrderTable = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -196,25 +206,47 @@ export const OrderTable = () => {
   return (
     <div className="space-y-8">
       {(['en attente', 'en preparation', 'pret', 'servi'] as const).map(status => (
-        <Card key={status} className="p-6 shadow-lg transition-all hover:shadow-xl border-t-4 border-t-primary">
+        <Card 
+          key={status} 
+          className="p-6 shadow-lg transition-all hover:shadow-xl border-t-4 border-t-primary animate-fade-in"
+        >
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold flex items-center gap-2">
-              {status === 'en attente' && 'Commandes en attente'}
-              {status === 'en preparation' && 'Commandes en préparation'}
-              {status === 'pret' && 'Commandes prêtes'}
-              {status === 'servi' && 'Commandes servies'}
-              <Badge variant="secondary" className="ml-2">
-                {ordersByStatus[status].length}
-              </Badge>
+              {status === 'en attente' && (
+                <>
+                  Commandes en attente
+                  <AlertTriangle className="text-yellow-500 h-5 w-5" />
+                </>
+              )}
+              {status === 'en preparation' && (
+                <>
+                  Commandes en préparation
+                  <Clock className="text-blue-500 h-5 w-5" />
+                </>
+              )}
+              {status === 'pret' && (
+                <>
+                  Commandes prêtes
+                  <Check className="text-green-500 h-5 w-5" />
+                </>
+              )}
+              {status === 'servi' && (
+                <>
+                  Commandes servies
+                  <Badge variant="secondary" className="ml-2">
+                    {ordersByStatus[status].length}
+                  </Badge>
+                </>
+              )}
             </h3>
           </div>
           
           {ordersByStatus[status].length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">Aucune commande dans cette catégorie</p>
+            <p className="text-muted-foreground text-center py-4 italic animate-fade-in">Aucune commande dans cette catégorie</p>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/30">
                   <TableHead>Table</TableHead>
                   <TableHead>Commande</TableHead>
                   <TableHead>Paiement</TableHead>
@@ -225,12 +257,14 @@ export const OrderTable = () => {
               <TableBody>
                 {ordersByStatus[status].map((order) => (
                   <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
-                    <TableCell className="font-medium">Table {order.table_numero}</TableCell>
+                    <TableCell className="font-medium">
+                      <span className="text-lg font-bold text-primary">Table {order.table_numero}</span>
+                    </TableCell>
                     <TableCell>
                       <div className="space-y-1">
                         {order.plats.map((plat, index) => (
-                          <div key={index} className="text-sm flex items-center gap-2">
-                            <span className="font-medium">{plat.quantity}x</span>
+                          <div key={index} className="text-sm flex items-center gap-2 animate-fade-in" style={{animationDelay: `${index * 100}ms`}}>
+                            <span className="font-medium bg-primary/10 px-2 py-0.5 rounded-full">{plat.quantity}x</span>
                             <span>{plat.nom}</span>
                           </div>
                         ))}

@@ -4,24 +4,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Order {
-  id: string;
-  table_id: string;
-  plats: {
-    id: string;
-    nom: string;
-    quantity: number;
-    prix: number;
-  }[];
-  statut: string;
-  methode_paiement: string;
-  heure_commande: string;
-  table_numero?: number;
-}
+import { Commande } from "@/types/supabase";
 
 export const OrderTable = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Chargement initial des commandes
@@ -97,7 +83,7 @@ export const OrderTable = () => {
       // Mise à jour locale de l'état
       setOrders(prevOrders =>
         prevOrders.map(order =>
-          order.id === orderId ? { ...order, statut: newStatus } : order
+          order.id === orderId ? { ...order, statut: newStatus as Commande['statut'] } : order
         )
       );
     } catch (error) {
@@ -134,7 +120,7 @@ export const OrderTable = () => {
   };
 
   // Fonction pour obtenir les prochaines actions selon le statut
-  const getNextStatusButtons = (order: Order) => {
+  const getNextStatusButtons = (order: Commande) => {
     switch (order.statut) {
       case 'en attente':
         return (

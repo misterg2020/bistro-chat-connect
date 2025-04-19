@@ -3,15 +3,7 @@ import { useEffect, useState } from "react";
 import { PlatCard } from "./PlatCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-interface Plat {
-  id: string;
-  nom: string;
-  description: string;
-  prix: number;
-  categorie: string;
-  image_url: string;
-}
+import { Plat } from "@/types/supabase";
 
 interface PlatListProps {
   searchQuery?: string;

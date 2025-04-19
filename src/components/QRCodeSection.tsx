@@ -1,11 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Table {
-  id: string;
-  numero: number;
-}
+import { Table } from "@/types/supabase";
 
 export const QRCodeSection = () => {
   const [tables, setTables] = useState<Table[]>([]);

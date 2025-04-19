@@ -4,20 +4,7 @@ import { Header } from "@/components/Header";
 import { PlatList } from "@/components/PlatList";
 import { Cart } from "@/components/Cart";
 import { Footer } from "@/components/Footer";
-
-interface Plat {
-  id: string;
-  nom: string;
-  description: string;
-  prix: number;
-  categorie: string;
-  image_url: string;
-}
-
-interface CartItem {
-  plat: Plat;
-  quantity: number;
-}
+import { Plat, CartItem } from "@/types/supabase";
 
 const MenuPage = () => {
   const [searchQuery, setSearchQuery] = useState("");

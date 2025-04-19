@@ -3,20 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Check } from "lucide-react";
 import { Link } from "react-router-dom";
-
-interface Plat {
-  id: string;
-  nom: string;
-  description: string;
-  prix: number;
-  categorie: string;
-  image_url: string;
-}
-
-interface CartItem {
-  plat: Plat;
-  quantity: number;
-}
+import { CartItem } from "@/types/supabase";
 
 interface OrderConfirmationProps {
   tableNumber: number;

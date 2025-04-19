@@ -1,15 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface Plat {
-  id: string;
-  nom: string;
-  description: string;
-  prix: number;
-  categorie: string;
-  image_url: string;
-}
+import { Plat } from "@/types/supabase";
 
 interface PlatCardProps {
   plat: Plat;

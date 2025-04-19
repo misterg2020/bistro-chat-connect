@@ -8,20 +8,7 @@ import { OrderConfirmation } from "@/components/OrderConfirmation";
 import { PaymentMethodModal } from "@/components/PaymentMethodModal";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-interface Plat {
-  id: string;
-  nom: string;
-  description: string;
-  prix: number;
-  categorie: string;
-  image_url: string;
-}
-
-interface CartItem {
-  plat: Plat;
-  quantity: number;
-}
+import { Plat, CartItem } from "@/types/supabase";
 
 const OrderPage = () => {
   const navigate = useNavigate();

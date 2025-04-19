@@ -13,10 +13,11 @@ const KitchenPage = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen bg-zinc-50">
       <Header />
       <main className="flex-grow container py-8">
-        <h1 className="text-3xl font-bold mb-8">Interface Cuisine</h1>
+        <h1 className="text-3xl font-bold mb-2 text-primary">Interface Cuisine</h1>
+        <p className="text-muted-foreground mb-8">Gérez les commandes en temps réel</p>
         
         {isAuthenticated ? (
           <OrderTable />

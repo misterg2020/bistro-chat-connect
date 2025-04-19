@@ -1,16 +1,19 @@
-
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { OrderStatusBadge } from "./OrderStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { Commande } from "@/types/supabase";
+import { useToast } from "@/hooks/use-toast";
+import { Clock, Check } from "lucide-react";
 
 export const OrderTable = () => {
   const [orders, setOrders] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
-  // Chargement initial des commandes
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -105,7 +108,6 @@ export const OrderTable = () => {
     };
   }, []);
 
-  // Mise à jour du statut d'une commande
   const updateOrderStatus = async (orderId: string, newStatus: string) => {
     try {
       const { error } = await supabase
@@ -117,7 +119,11 @@ export const OrderTable = () => {
         throw error;
       }
 
-      // Mise à jour locale de l'état
+      toast({
+        title: "Statut mis à jour",
+        description: "Le statut de la commande a été mis à jour avec succès",
+      });
+
       setOrders(prevOrders =>
         prevOrders.map(order =>
           order.id === orderId ? { ...order, statut: newStatus as Commande['statut'] } : order
@@ -125,46 +131,24 @@ export const OrderTable = () => {
       );
     } catch (error) {
       console.error('Erreur lors de la mise à jour du statut:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de la commande",
+      });
     }
   };
 
-  // Fonction pour afficher le badge de statut avec la bonne couleur
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'en attente':
-        return <Badge variant="outline" className="bg-yellow-100 border-yellow-300 text-yellow-800">En attente</Badge>;
-      case 'en preparation':
-        return <Badge variant="outline" className="bg-blue-100 border-blue-300 text-blue-800">En préparation</Badge>;
-      case 'pret':
-        return <Badge variant="outline" className="bg-green-100 border-green-300 text-green-800">Prêt</Badge>;
-      case 'servi':
-        return <Badge variant="outline" className="bg-gray-100 border-gray-300 text-gray-800">Servi</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
-  // Fonction pour formater la date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date);
-  };
-
-  // Fonction pour obtenir les prochaines actions selon le statut
-  const getNextStatusButtons = (order: Commande) => {
+  const getNextStatusButton = (order: Commande) => {
     switch (order.statut) {
       case 'en attente':
         return (
           <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'en preparation')}
+            className="bg-blue-500 hover:bg-blue-600 transition-colors"
           >
+            <Clock className="mr-2 h-4 w-4" />
             Commencer la préparation
           </Button>
         );
@@ -173,7 +157,9 @@ export const OrderTable = () => {
           <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'pret')}
+            className="bg-green-500 hover:bg-green-600 transition-colors"
           >
+            <Check className="mr-2 h-4 w-4" />
             Marquer comme prêt
           </Button>
         );
@@ -182,22 +168,24 @@ export const OrderTable = () => {
           <Button
             size="sm"
             onClick={() => updateOrderStatus(order.id, 'servi')}
+            className="bg-purple-500 hover:bg-purple-600 transition-colors"
           >
             Marquer comme servi
           </Button>
         );
-      case 'servi':
-        return null;
       default:
         return null;
     }
   };
 
   if (loading) {
-    return <div className="text-center py-8">Chargement des commandes...</div>;
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
   }
 
-  // Regrouper les commandes par statut
   const ordersByStatus = {
     'en attente': orders.filter(order => order.statut === 'en attente'),
     'en preparation': orders.filter(order => order.statut === 'en preparation'),
@@ -208,15 +196,18 @@ export const OrderTable = () => {
   return (
     <div className="space-y-8">
       {(['en attente', 'en preparation', 'pret', 'servi'] as const).map(status => (
-        <div key={status} className="rounded-lg border p-4">
-          <h3 className="text-lg font-semibold mb-4">
-            {status === 'en attente' && 'Commandes en attente'}
-            {status === 'en preparation' && 'Commandes en préparation'}
-            {status === 'pret' && 'Commandes prêtes'}
-            {status === 'servi' && 'Commandes servies'}
-            {' '}
-            <Badge variant="secondary">{ordersByStatus[status].length}</Badge>
-          </h3>
+        <Card key={status} className="p-6 shadow-lg transition-all hover:shadow-xl border-t-4 border-t-primary">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              {status === 'en attente' && 'Commandes en attente'}
+              {status === 'en preparation' && 'Commandes en préparation'}
+              {status === 'pret' && 'Commandes prêtes'}
+              {status === 'servi' && 'Commandes servies'}
+              <Badge variant="secondary" className="ml-2">
+                {ordersByStatus[status].length}
+              </Badge>
+            </h3>
+          </div>
           
           {ordersByStatus[status].length === 0 ? (
             <p className="text-muted-foreground text-center py-4">Aucune commande dans cette catégorie</p>
@@ -233,103 +224,32 @@ export const OrderTable = () => {
               </TableHeader>
               <TableBody>
                 {ordersByStatus[status].map((order) => (
-                  <TableRow key={order.id}>
+                  <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
                     <TableCell className="font-medium">Table {order.table_numero}</TableCell>
                     <TableCell>
-                      <div>
+                      <div className="space-y-1">
                         {order.plats.map((plat, index) => (
-                          <div key={index} className="text-sm">
-                            {plat.quantity}x {plat.nom}
+                          <div key={index} className="text-sm flex items-center gap-2">
+                            <span className="font-medium">{plat.quantity}x</span>
+                            <span>{plat.nom}</span>
                           </div>
                         ))}
                       </div>
                     </TableCell>
                     <TableCell>
-                      {order.methode_paiement === 'especes' && 'Espèces'}
-                      {order.methode_paiement === 'carte' && 'Carte bancaire'}
-                      {order.methode_paiement === 'mobile_money' && 'Mobile Money'}
-                      {order.methode_paiement === 'wave' && 'Wave'}
+                      <Badge variant="outline" className="capitalize">
+                        {order.methode_paiement.replace('_', ' ')}
+                      </Badge>
                     </TableCell>
                     <TableCell>{new Date(order.heure_commande).toLocaleString('fr-FR')}</TableCell>
-                    <TableCell>{getNextStatusButtons(order)}</TableCell>
+                    <TableCell>{getNextStatusButton(order)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
-        </div>
+        </Card>
       ))}
     </div>
   );
-};
-
-// Fonction pour afficher le badge de statut avec la bonne couleur
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'en attente':
-      return <Badge variant="outline" className="bg-yellow-100 border-yellow-300 text-yellow-800">En attente</Badge>;
-    case 'en preparation':
-      return <Badge variant="outline" className="bg-blue-100 border-blue-300 text-blue-800">En préparation</Badge>;
-    case 'pret':
-      return <Badge variant="outline" className="bg-green-100 border-green-300 text-green-800">Prêt</Badge>;
-    case 'servi':
-      return <Badge variant="outline" className="bg-gray-100 border-gray-300 text-gray-800">Servi</Badge>;
-    default:
-      return <Badge variant="outline">{status}</Badge>;
-  }
-};
-
-// Fonction pour obtenir les prochaines actions selon le statut
-const getNextStatusButtons = (order: Commande) => {
-  switch (order.statut) {
-    case 'en attente':
-      return (
-        <Button
-          size="sm"
-          onClick={() => updateOrderStatus(order.id, 'en preparation')}
-        >
-          Commencer la préparation
-        </Button>
-      );
-    case 'en preparation':
-      return (
-        <Button
-          size="sm"
-          onClick={() => updateOrderStatus(order.id, 'pret')}
-        >
-          Marquer comme prêt
-        </Button>
-      );
-    case 'pret':
-      return (
-        <Button
-          size="sm"
-          onClick={() => updateOrderStatus(order.id, 'servi')}
-        >
-          Marquer comme servi
-        </Button>
-      );
-    case 'servi':
-      return null;
-    default:
-      return null;
-  }
-};
-
-// Fonction pour mettre à jour le statut d'une commande (définie globalement pour être utilisée dans getNextStatusButtons)
-const updateOrderStatus = async (orderId: string, newStatus: string) => {
-  try {
-    const { error } = await supabase
-      .from('commandes')
-      .update({ statut: newStatus })
-      .eq('id', orderId);
-
-    if (error) {
-      throw error;
-    }
-    
-    // La mise à jour de l'état local sera gérée par la souscription en temps réel
-  } catch (error) {
-    console.error('Erreur lors de la mise à jour du statut:', error);
-  }
 };

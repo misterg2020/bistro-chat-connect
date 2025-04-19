@@ -46,9 +46,9 @@ export const QRCodeSection = () => {
 
   // Générer l'URL de l'application avec le numéro de table
   const getTableUrl = (tableNum: number) => {
-    // En production, remplacez par l'URL de votre application
+    // Modifier le lien pour rediriger vers la page du menu avec le numéro de table en paramètre
     const baseUrl = window.location.origin;
-    return `${baseUrl}/commande?table=${tableNum}`;
+    return `${baseUrl}/menu?table=${tableNum}`;
   };
 
   return (

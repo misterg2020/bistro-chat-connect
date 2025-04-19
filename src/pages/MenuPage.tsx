@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -30,7 +31,24 @@ const MenuPage = () => {
     }
     
     setTableNumber(parseInt(table));
-  }, [location.search, navigate]);
+    
+    // Récupérer le panier depuis sessionStorage si disponible
+    const storedCart = sessionStorage.getItem(`cart-table-${table}`);
+    if (storedCart) {
+      try {
+        setCartItems(JSON.parse(storedCart));
+      } catch (error) {
+        console.error("Erreur lors de la récupération du panier:", error);
+      }
+    }
+  }, [location.search, navigate, toast]);
+
+  // Sauvegarder le panier dans sessionStorage à chaque modification
+  useEffect(() => {
+    if (tableNumber) {
+      sessionStorage.setItem(`cart-table-${tableNumber}`, JSON.stringify(cartItems));
+    }
+  }, [cartItems, tableNumber]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -74,6 +92,12 @@ const MenuPage = () => {
     if (cartItems.length > 0 && tableNumber) {
       sessionStorage.setItem('cartItems', JSON.stringify(cartItems));
       navigate(`/commande?table=${tableNumber}`);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Panier vide",
+        description: "Veuillez ajouter des plats à votre commande",
+      });
     }
   };
 
@@ -83,7 +107,7 @@ const MenuPage = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header onSearch={searchQuery ? handleSearch : undefined} />
+      <Header onSearch={handleSearch} />
       <main className="flex-grow container py-8">
         <h1 className="text-3xl font-bold mb-8">Notre Menu - Table {tableNumber}</h1>
         

@@ -18,8 +18,9 @@ export const Hero = () => {
       
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-white text-center p-4">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">Bienvenue à MRG RESTAU</h1>
-        <p className="text-xl md:text-2xl mb-8 max-w-2xl">Scannez le QR code de votre table pour commencer votre commande</p>
-        <p className="text-lg mb-8 max-w-2xl text-yellow-300">Aucune commande n'est possible sans scanner le QR code de votre table</p>
+        <p className="text-xl md:text-2xl mb-4 max-w-2xl">Scannez le QR code de votre table pour commencer votre commande</p>
+        <p className="text-lg mb-8 max-w-2xl text-yellow-300 font-bold">Pour commander, vous devez scanner le QR code de votre table</p>
+        <p className="text-md max-w-2xl">Faites défiler vers le bas pour voir les QR codes disponibles pour le test</p>
       </div>
     </div>
   );

@@ -6,7 +6,115 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://rzmsxpcmmzihrhuorlmy.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ6bXN4cGNtbXppaHJodW9ybG15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUwNzc5ODYsImV4cCI6MjA2MDY1Mzk4Nn0.Qx1kJl8DMmXwBUGw8KwtWsERsWLQqd7XHolNG0fhfBs";
 
+// Instead of using the Database type directly, we'll use a simple type definition
+// that knows about our tables
+type CustomDatabase = {
+  public: {
+    Tables: {
+      tables: {
+        Row: {
+          id: string;
+          numero: number;
+          created_at?: string;
+        };
+        Insert: {
+          id?: string;
+          numero: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          numero?: number;
+          created_at?: string;
+        };
+      };
+      plats: {
+        Row: {
+          id: string;
+          nom: string;
+          description: string;
+          prix: number;
+          categorie: string;
+          image_url: string;
+          created_at?: string;
+        };
+        Insert: {
+          id?: string;
+          nom: string;
+          description: string;
+          prix: number;
+          categorie: string;
+          image_url: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          nom?: string;
+          description?: string;
+          prix?: number;
+          categorie?: string;
+          image_url?: string;
+          created_at?: string;
+        };
+      };
+      commandes: {
+        Row: {
+          id: string;
+          table_id: string;
+          plats: {
+            id: string;
+            nom: string;
+            prix: number;
+            quantity: number;
+          }[];
+          statut: 'en attente' | 'en preparation' | 'pret' | 'servi';
+          methode_paiement: string;
+          heure_commande: string;
+        };
+        Insert: {
+          id?: string;
+          table_id: string;
+          plats: {
+            id: string;
+            nom: string;
+            prix: number;
+            quantity: number;
+          }[];
+          statut: 'en attente' | 'en preparation' | 'pret' | 'servi';
+          methode_paiement: string;
+          heure_commande?: string;
+        };
+        Update: {
+          id?: string;
+          table_id?: string;
+          plats?: {
+            id: string;
+            nom: string;
+            prix: number;
+            quantity: number;
+          }[];
+          statut?: 'en attente' | 'en preparation' | 'pret' | 'servi';
+          methode_paiement?: string;
+          heure_commande?: string;
+        };
+      };
+    };
+    Views: {
+      [_ in never]: never;
+    };
+    Functions: {
+      [_ in never]: never;
+    };
+    Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
+      [_ in never]: never;
+    };
+  };
+};
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+export const supabase = createClient<CustomDatabase>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);

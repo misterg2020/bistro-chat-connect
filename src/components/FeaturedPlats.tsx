@@ -13,20 +13,55 @@ export const FeaturedPlats = () => {
   useEffect(() => {
     const fetchPlats = async () => {
       try {
-        const { data, error } = await supabase
-          .from("plats")
-          .select("*")
-          .limit(3);
+        // Utiliser des données statiques temporaires en cas d'erreur
+        const mockPlats: Plat[] = [
+          {
+            id: "1",
+            nom: "Attiéké au poisson",
+            description: "Semoule de manioc accompagnée de poisson grillé et de légumes frais",
+            prix: 5000,
+            categorie: "Plat principal",
+            image_url: "https://i.ytimg.com/vi/o9v9co-ohWc/maxresdefault.jpg"
+          },
+          {
+            id: "2",
+            nom: "Poulet yassa",
+            description: "Poulet mariné aux oignons et au citron, tradition sénégalaise",
+            prix: 6500,
+            categorie: "Plat principal",
+            image_url: "https://res.cloudinary.com/hv9ssmzrz/image/fetch/c_fill,f_auto,h_600,q_auto,w_800/https://s3-eu-west-1.amazonaws.com/images-ca-1-0-1-eu/recipe_photos/original/228351/Poulet_Yassa_S%C3%A9n%C3%A9galais.jpg"
+          },
+          {
+            id: "3",
+            nom: "Tilapia grillé", 
+            description: "Poisson tilapia grillé accompagné de bananes plantains et de sauce piquante",
+            prix: 7000,
+            categorie: "Plat principal",
+            image_url: "https://www.maggi.ci/sites/default/files/srh_recipes/3bff11a994c06addd766ec13196124ec.jpg"
+          }
+        ];
         
-        if (error) {
-          throw error;
+        try {
+          const { data, error } = await supabase
+            .from("plats")
+            .select("*")
+            .limit(3);
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (data && data.length > 0) {
+            setPlats(data);
+          } else {
+            // Fallback aux données statiques si aucun résultat
+            setPlats(mockPlats);
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération des plats:", error);
+          // Fallback aux données statiques en cas d'erreur
+          setPlats(mockPlats);
         }
-        
-        if (data) {
-          setPlats(data);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération des plats:", error);
       } finally {
         setLoading(false);
       }

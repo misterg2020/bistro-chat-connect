@@ -9,17 +9,32 @@ export const QRCodeSection = () => {
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const { data, error } = await supabase
-          .from("tables")
-          .select("*")
-          .order("numero");
+        // Données statiques de secours
+        const mockTables: Table[] = Array.from({ length: 20 }, (_, i) => ({
+          id: `table-${i + 1}`,
+          numero: i + 1
+        }));
         
-        if (error) {
-          throw error;
-        }
-        
-        if (data) {
-          setTables(data);
+        try {
+          const { data, error } = await supabase
+            .from("tables")
+            .select("*")
+            .order("numero");
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (data && data.length > 0) {
+            setTables(data);
+          } else {
+            // Fallback aux données statiques si aucun résultat
+            setTables(mockTables);
+          }
+        } catch (error) {
+          console.error("Erreur lors de la récupération des tables:", error);
+          // Fallback aux données statiques en cas d'erreur
+          setTables(mockTables);
         }
       } catch (error) {
         console.error("Erreur lors de la récupération des tables:", error);

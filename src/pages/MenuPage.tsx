@@ -1,14 +1,36 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { PlatList } from "@/components/PlatList";
 import { Cart } from "@/components/Cart";
 import { Footer } from "@/components/Footer";
 import { Plat, CartItem } from "@/types/supabase";
+import { useToast } from "@/hooks/use-toast";
 
 const MenuPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  const [tableNumber, setTableNumber] = useState<number | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const table = params.get('table');
+    
+    if (!table) {
+      toast({
+        variant: "destructive",
+        title: "Accès refusé",
+        description: "Veuillez scanner le QR code de votre table pour commander.",
+      });
+      navigate('/');
+      return;
+    }
+    
+    setTableNumber(parseInt(table));
+  }, [location.search, navigate]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -16,18 +38,15 @@ const MenuPage = () => {
 
   const handleAddToCart = (plat: Plat) => {
     setCartItems((prevItems) => {
-      // Vérifier si l'article est déjà dans le panier
       const existingItem = prevItems.find((item) => item.plat.id === plat.id);
       
       if (existingItem) {
-        // Augmenter la quantité si l'article existe déjà
         return prevItems.map((item) =>
           item.plat.id === plat.id
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       } else {
-        // Ajouter le nouvel article au panier
         return [...prevItems, { plat, quantity: 1 }];
       }
     });
@@ -36,10 +55,8 @@ const MenuPage = () => {
   const handleUpdateQuantity = (platId: string, quantity: number) => {
     setCartItems((prevItems) => {
       if (quantity <= 0) {
-        // Supprimer l'article si la quantité est 0 ou moins
         return prevItems.filter((item) => item.plat.id !== platId);
       } else {
-        // Mettre à jour la quantité
         return prevItems.map((item) =>
           item.plat.id === platId ? { ...item, quantity } : item
         );
@@ -54,19 +71,21 @@ const MenuPage = () => {
   };
 
   const handleCheckout = () => {
-    // Rediriger vers la page de commande si un numéro de table est disponible
-    if (cartItems.length > 0) {
-      // Stockage temporaire du panier pour la page de commande
+    if (cartItems.length > 0 && tableNumber) {
       sessionStorage.setItem('cartItems', JSON.stringify(cartItems));
-      window.location.href = '/commande';
+      navigate(`/commande?table=${tableNumber}`);
     }
   };
 
+  if (!tableNumber) {
+    return null;
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
-      <Header onSearch={handleSearch} />
+      <Header onSearch={searchQuery ? handleSearch : undefined} />
       <main className="flex-grow container py-8">
-        <h1 className="text-3xl font-bold mb-8">Notre Menu</h1>
+        <h1 className="text-3xl font-bold mb-8">Notre Menu - Table {tableNumber}</h1>
         
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">

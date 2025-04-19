@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -134,17 +133,18 @@ const OrderPage = () => {
           quantity: item.quantity
         }));
         
-        // Enregistrer la commande
+        // Enregistrer la commande avec le mode de paiement
         const { data: orderData, error: orderError } = await supabase
           .from("commandes")
           .insert({
             table_id: tableData.id,
             plats: platsData,
             statut: "en attente",
-            methode_paiement: method
+            methode_paiement: method,
+            heure_commande: new Date().toISOString()
           })
           .select();
-        
+
         if (orderError) {
           console.error("Erreur commande:", orderError);
           // Simulation en cas d'erreur

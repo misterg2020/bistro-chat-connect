@@ -12,21 +12,14 @@ export const Hero = () => {
         loop 
         className="w-full h-[80vh] object-cover"
       >
-        <source src="https://assets.mixkit.co/videos/preview/mixkit-panning-shot-of-a-gourmet-restaurant-9227-large.mp4" type="video/mp4" />
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-serving-tray-in-a-restaurant-32692-large.mp4" type="video/mp4" />
         Votre navigateur ne supporte pas la vidéo.
       </video>
       
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center text-white text-center p-4">
         <h1 className="text-4xl md:text-6xl font-bold mb-4">Bienvenue à MRG RESTAU</h1>
-        <p className="text-xl md:text-2xl mb-8 max-w-2xl">Une expérience culinaire exceptionnelle avec des plats traditionnels et modernes</p>
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Button asChild size="lg" className="text-lg">
-            <Link to="/menu">Découvrir notre menu</Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="text-lg bg-transparent text-white hover:text-primary hover:bg-white border-white">
-            <Link to="/about">À propos de nous</Link>
-          </Button>
-        </div>
+        <p className="text-xl md:text-2xl mb-8 max-w-2xl">Scannez le QR code de votre table pour commencer votre commande</p>
+        <p className="text-lg mb-8 max-w-2xl text-yellow-300">Aucune commande n'est possible sans scanner le QR code de votre table</p>
       </div>
     </div>
   );

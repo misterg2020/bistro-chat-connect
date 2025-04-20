@@ -6,10 +6,13 @@ import { KitchenLogin } from "@/components/KitchenLogin";
 import { OrderTable } from "@/components/OrderTable";
 import { Card } from "@/components/ui/card";
 import { Coffee, Utensils } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const KitchenPage = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     // Check if user was previously authenticated
@@ -18,7 +21,31 @@ const KitchenPage = () => {
       setIsAuthenticated(true);
     }
     setLoading(false);
-  }, []);
+
+    // Vérifier si les tables nécessaires existent dans Supabase
+    const checkTablesExist = async () => {
+      try {
+        // Vérifier si la table 'commandes' existe
+        const { error: commandesError } = await supabase
+          .from('commandes')
+          .select('id')
+          .limit(1);
+
+        if (commandesError) {
+          console.error('Erreur lors de la vérification de la table commandes:', commandesError);
+          toast({
+            variant: "destructive",
+            title: "Erreur de connexion à la base de données",
+            description: "Impossible de se connecter à la table des commandes"
+          });
+        }
+      } catch (error) {
+        console.error('Erreur lors de la vérification des tables:', error);
+      }
+    };
+
+    checkTablesExist();
+  }, [toast]);
 
   const handleLogin = () => {
     setIsAuthenticated(true);

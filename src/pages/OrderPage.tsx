@@ -10,6 +10,7 @@ import { OrderStatusBadge } from "@/components/OrderStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Plat, CartItem, Commande } from "@/types/supabase";
+import { AlertTriangle } from "lucide-react";
 
 const OrderPage = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const OrderPage = () => {
   const [orderId, setOrderId] = useState("");
   const [orderStatus, setOrderStatus] = useState<Commande['statut'] | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Récupérer le numéro de table depuis l'URL
   useEffect(() => {
@@ -81,7 +83,7 @@ const OrderPage = () => {
               setOrderStatus(payload.new.statut as Commande['statut']);
               toast({
                 title: "Statut de commande mis à jour",
-                description: `Votre commande est maintenant ${payload.new.statut}`,
+                description: `Votre commande est maintenant ${payload.new.statut.replace('_', ' ')}`,
               });
             }
           }
@@ -139,6 +141,7 @@ const OrderPage = () => {
     setIsPaymentModalOpen(false);
     setPaymentMethod(method);
     setIsSubmitting(true);
+    setError(null);
     
     try {
       if (!tableNumber) {
@@ -150,6 +153,8 @@ const OrderPage = () => {
         setIsSubmitting(false);
         return;
       }
+      
+      console.log("Soumission de la commande avec la table:", tableNumber);
       
       // Création ou vérification de la table
       let tableId;
@@ -170,14 +175,16 @@ const OrderPage = () => {
           .insert({ numero: tableNumber })
           .select();
         
-        if (createError || !newTable) {
+        if (createError || !newTable || newTable.length === 0) {
           console.error("Erreur lors de la création de la table:", createError);
           throw new Error("Échec de la création de la table");
         }
         
         tableId = newTable[0].id;
+        console.log("Nouvelle table créée avec ID:", tableId);
       } else {
         tableId = existingTable.id;
+        console.log("Table existante trouvée avec ID:", tableId);
       }
       
       // Formater les plats pour enregistrement
@@ -187,6 +194,13 @@ const OrderPage = () => {
         prix: item.plat.prix,
         quantity: item.quantity
       }));
+      
+      console.log("Données de commande à enregistrer:", {
+        table_id: tableId,
+        plats: platsData,
+        statut: "en attente",
+        methode_paiement: method
+      });
       
       // Enregistrer la commande avec le mode de paiement
       const { data: orderData, error: orderError } = await supabase
@@ -202,7 +216,7 @@ const OrderPage = () => {
 
       if (orderError) {
         console.error("Erreur commande:", orderError);
-        throw new Error("Échec de l'enregistrement de la commande");
+        throw new Error(`Échec de l'enregistrement de la commande: ${orderError.message}`);
       }
       
       if (!orderData || orderData.length === 0) {
@@ -210,6 +224,7 @@ const OrderPage = () => {
       }
       
       // Commande enregistrée avec succès
+      console.log("Commande enregistrée avec succès:", orderData[0]);
       setOrderId(orderData[0].id);
       setOrderStatus('en attente');
       setOrderSubmitted(true);
@@ -222,15 +237,24 @@ const OrderPage = () => {
         description: "Votre commande a été envoyée à la cuisine.",
       });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'enregistrement de la commande:", error);
+      setError(error.message || "Un problème est survenu lors de l'enregistrement de la commande");
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: "Un problème est survenu lors de l'enregistrement de la commande.",
+        description: error.message || "Un problème est survenu lors de l'enregistrement de la commande.",
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleRetry = () => {
+    if (paymentMethod && tableNumber) {
+      handlePaymentConfirm(paymentMethod);
+    } else {
+      setIsPaymentModalOpen(true);
     }
   };
 
@@ -244,6 +268,22 @@ const OrderPage = () => {
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
               <p className="text-lg font-medium">Traitement en cours...</p>
             </div>
+          </div>
+        )}
+        
+        {error && !orderSubmitted && (
+          <div className="max-w-2xl mx-auto bg-red-50 border border-red-200 p-6 rounded-lg mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-500" />
+              <h3 className="text-xl font-semibold text-red-700">Erreur lors de la commande</h3>
+            </div>
+            <p className="text-red-600 mb-4">{error}</p>
+            <button 
+              onClick={handleRetry}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+            >
+              Réessayer
+            </button>
           </div>
         )}
         

@@ -8,16 +8,20 @@ import { OrderStatusBadge } from "./OrderStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { Commande } from "@/types/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, Check, AlertTriangle, Trash2 } from "lucide-react";
+import { Clock, Check, AlertTriangle, Trash2, RefreshCw } from "lucide-react";
 
 export const OrderTable = () => {
   const [orders, setOrders] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchOrders = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log("Récupération des commandes en cours...");
+      
       // Récupérer les commandes avec les informations de la table
       const { data, error } = await supabase
         .from('commandes')
@@ -31,6 +35,7 @@ export const OrderTable = () => {
 
       if (error) {
         console.error('Erreur détaillée lors de la récupération des commandes:', error);
+        setError("Impossible de récupérer les commandes depuis la base de données");
         throw error;
       }
 
@@ -43,35 +48,8 @@ export const OrderTable = () => {
         setOrders(formattedOrders);
         console.log('Commandes récupérées:', formattedOrders);
       } else {
-        console.log('Aucune commande trouvée');
-        // Utiliser les données statiques uniquement si la table n'existe pas encore
-        const mockOrders: Commande[] = [
-          {
-            id: "1",
-            table_id: "table-1",
-            plats: [
-              { id: "1", nom: "Attiéké au poisson", prix: 5000, quantity: 2 },
-              { id: "2", nom: "Bissap", prix: 2000, quantity: 3 }
-            ],
-            statut: "en attente",
-            methode_paiement: "especes",
-            heure_commande: new Date().toISOString(),
-            table_numero: 1
-          },
-          {
-            id: "2",
-            table_id: "table-3",
-            plats: [
-              { id: "2", nom: "Poulet yassa", prix: 6500, quantity: 1 },
-              { id: "4", nom: "Tarte tatin", prix: 4000, quantity: 2 }
-            ],
-            statut: "en preparation",
-            methode_paiement: "carte",
-            heure_commande: new Date().toISOString(),
-            table_numero: 3
-          }
-        ];
-        setOrders(mockOrders);
+        console.log('Aucune commande trouvée dans la base de données');
+        setOrders([]);
       }
     } catch (error) {
       console.error('Erreur lors de la récupération des commandes:', error);
@@ -222,10 +200,31 @@ export const OrderTable = () => {
     }
   };
 
+  const handleRefresh = () => {
+    fetchOrders();
+    toast({
+      title: "Actualisation",
+      description: "Liste des commandes actualisée",
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+        <h3 className="text-xl font-semibold text-red-600 mb-2">Erreur de connexion</h3>
+        <p className="text-muted-foreground mb-4">{error}</p>
+        <Button onClick={handleRefresh} variant="outline" className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4" /> Réessayer
+        </Button>
       </div>
     );
   }
@@ -239,7 +238,16 @@ export const OrderTable = () => {
 
   return (
     <div>
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-between mb-6">
+        <Button 
+          variant="outline" 
+          onClick={handleRefresh}
+          className="hover:scale-105 transition-transform flex items-center gap-2"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Actualiser
+        </Button>
+        
         <Button 
           variant="destructive" 
           onClick={deleteAllOrders}
@@ -250,87 +258,94 @@ export const OrderTable = () => {
         </Button>
       </div>
 
-      <div className="space-y-8">
-        {(['en attente', 'en preparation', 'pret', 'servi'] as const).map(status => (
-          <Card 
-            key={status} 
-            className="p-6 shadow-lg transition-all hover:shadow-xl border-t-4 border-t-primary animate-fade-in"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                {status === 'en attente' && (
-                  <>
-                    Commandes en attente
-                    <AlertTriangle className="text-yellow-500 h-5 w-5" />
-                  </>
-                )}
-                {status === 'en preparation' && (
-                  <>
-                    Commandes en préparation
-                    <Clock className="text-blue-500 h-5 w-5" />
-                  </>
-                )}
-                {status === 'pret' && (
-                  <>
-                    Commandes prêtes
-                    <Check className="text-green-500 h-5 w-5" />
-                  </>
-                )}
-                {status === 'servi' && (
-                  <>
-                    Commandes servies
-                    <Badge variant="secondary" className="ml-2">
-                      {ordersByStatus[status].length}
-                    </Badge>
-                  </>
-                )}
-              </h3>
-            </div>
-            
-            {ordersByStatus[status].length === 0 ? (
-              <p className="text-muted-foreground text-center py-4 italic animate-fade-in">Aucune commande dans cette catégorie</p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead>Table</TableHead>
-                    <TableHead>Commande</TableHead>
-                    <TableHead>Paiement</TableHead>
-                    <TableHead>Heure</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {ordersByStatus[status].map((order) => (
-                    <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
-                      <TableCell className="font-medium">
-                        <span className="text-lg font-bold text-primary">Table {order.table_numero}</span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-1">
-                          {order.plats.map((plat, index) => (
-                            <div key={index} className="text-sm flex items-center gap-2 animate-fade-in" style={{animationDelay: `${index * 100}ms`}}>
-                              <span className="font-medium bg-primary/10 px-2 py-0.5 rounded-full">{plat.quantity}x</span>
-                              <span>{plat.nom}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="capitalize">
-                          {order.methode_paiement.replace('_', ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{new Date(order.heure_commande).toLocaleString('fr-FR')}</TableCell>
-                      <TableCell>{getNextStatusButton(order)}</TableCell>
+      {orders.length === 0 ? (
+        <div className="text-center py-8 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+          <p className="text-muted-foreground">Aucune commande à afficher</p>
+          <p className="text-sm mt-2">Les commandes passées par les clients apparaîtront ici</p>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          {(['en attente', 'en preparation', 'pret', 'servi'] as const).map(status => (
+            <Card 
+              key={status} 
+              className="p-6 shadow-lg transition-all hover:shadow-xl border-t-4 border-t-primary animate-fade-in"
+            >
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  {status === 'en attente' && (
+                    <>
+                      Commandes en attente
+                      <AlertTriangle className="text-yellow-500 h-5 w-5" />
+                    </>
+                  )}
+                  {status === 'en preparation' && (
+                    <>
+                      Commandes en préparation
+                      <Clock className="text-blue-500 h-5 w-5" />
+                    </>
+                  )}
+                  {status === 'pret' && (
+                    <>
+                      Commandes prêtes
+                      <Check className="text-green-500 h-5 w-5" />
+                    </>
+                  )}
+                  {status === 'servi' && (
+                    <>
+                      Commandes servies
+                      <Badge variant="secondary" className="ml-2">
+                        {ordersByStatus[status].length}
+                      </Badge>
+                    </>
+                  )}
+                </h3>
+              </div>
+              
+              {ordersByStatus[status].length === 0 ? (
+                <p className="text-muted-foreground text-center py-4 italic animate-fade-in">Aucune commande dans cette catégorie</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead>Table</TableHead>
+                      <TableHead>Commande</TableHead>
+                      <TableHead>Paiement</TableHead>
+                      <TableHead>Heure</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </Card>
-        ))}
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {ordersByStatus[status].map((order) => (
+                      <TableRow key={order.id} className="hover:bg-muted/50 transition-colors">
+                        <TableCell className="font-medium">
+                          <span className="text-lg font-bold text-primary">Table {order.table_numero}</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            {order.plats.map((plat, index) => (
+                              <div key={index} className="text-sm flex items-center gap-2 animate-fade-in" style={{animationDelay: `${index * 100}ms`}}>
+                                <span className="font-medium bg-primary/10 px-2 py-0.5 rounded-full">{plat.quantity}x</span>
+                                <span>{plat.nom}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {order.methode_paiement.replace('_', ' ')}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{new Date(order.heure_commande).toLocaleString('fr-FR')}</TableCell>
+                        <TableCell>{getNextStatusButton(order)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

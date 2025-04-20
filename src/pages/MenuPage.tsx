@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { Plat, CartItem } from "@/types/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const MenuPage = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,7 +36,6 @@ const MenuPage = () => {
     const tableNum = parseInt(table);
     setTableNumber(tableNum);
 
-    // ✅ Vérifie que la table existe dans Supabase
     const fetchTable = async () => {
       const { data, error } = await supabase
         .from("tables")
@@ -55,7 +55,6 @@ const MenuPage = () => {
 
       setTableId(data.id);
 
-      // 🛒 Récupérer le panier depuis sessionStorage
       const storedCart = sessionStorage.getItem(`cart-table-${table}`);
       if (storedCart) {
         try {
@@ -69,7 +68,6 @@ const MenuPage = () => {
     fetchTable();
   }, [location.search, navigate, toast]);
 
-  // Sauvegarder le panier dans sessionStorage à chaque modification
   useEffect(() => {
     if (tableNumber) {
       sessionStorage.setItem(`cart-table-${tableNumber}`, JSON.stringify(cartItems));
@@ -140,7 +138,9 @@ const MenuPage = () => {
           <div className="lg:col-span-2">
             <PlatList searchQuery={searchQuery} onAddToCart={handleAddToCart} />
           </div>
-          <div>
+
+          {/* Panier Desktop seulement */}
+          <div className="hidden lg:block">
             <div className="sticky top-24">
               <Cart
                 items={cartItems}
@@ -150,6 +150,30 @@ const MenuPage = () => {
               />
             </div>
           </div>
+        </div>
+
+        {/* Bouton Panier Mobile (flottant en bas à droite) */}
+        <div className="fixed bottom-4 right-4 z-50 lg:hidden">
+          <Sheet>
+            <SheetTrigger asChild>
+              <button className="relative bg-black text-white p-4 rounded-full shadow-xl hover:bg-gray-800">
+                🛒
+                {cartItems.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs px-2">
+                    {cartItems.length}
+                  </span>
+                )}
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom">
+              <Cart
+                items={cartItems}
+                updateQuantity={handleUpdateQuantity}
+                removeItem={handleRemoveItem}
+                onCheckout={handleCheckout}
+              />
+            </SheetContent>
+          </Sheet>
         </div>
       </main>
       <Footer />

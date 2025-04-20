@@ -15,36 +15,37 @@ const KitchenPage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user was previously authenticated
+    // Vérifier si l'utilisateur était précédemment authentifié
     const kitchenAuth = localStorage.getItem("kitchen_authenticated");
     if (kitchenAuth === "true") {
       setIsAuthenticated(true);
     }
     setLoading(false);
 
-    // Vérifier si les tables nécessaires existent dans Supabase
-    const checkTablesExist = async () => {
+    // Vérifier la connexion à la base de données
+    const checkConnection = async () => {
       try {
-        // Vérifier si la table 'commandes' existe
-        const { error: commandesError } = await supabase
+        const { error } = await supabase
           .from('commandes')
           .select('id')
           .limit(1);
 
-        if (commandesError) {
-          console.error('Erreur lors de la vérification de la table commandes:', commandesError);
+        if (error) {
+          console.error('Erreur de connexion à la base de données:', error);
           toast({
             variant: "destructive",
-            title: "Erreur de connexion à la base de données",
-            description: "Impossible de se connecter à la table des commandes"
+            title: "Erreur de connexion",
+            description: "Impossible de se connecter à la base de données"
           });
+        } else {
+          console.log('Connexion à la base de données établie');
         }
       } catch (error) {
-        console.error('Erreur lors de la vérification des tables:', error);
+        console.error('Erreur:', error);
       }
     };
 
-    checkTablesExist();
+    checkConnection();
   }, [toast]);
 
   const handleLogin = () => {

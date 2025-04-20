@@ -1,7 +1,9 @@
+
 import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { Commande } from "@/types/supabase";
@@ -20,6 +22,7 @@ export const OrderTable = () => {
       setError(null);
       console.log("Récupération des commandes en cours...");
       
+      // Récupérer les commandes avec les informations de la table
       const { data, error } = await supabase
         .from('commandes')
         .select(`
@@ -31,21 +34,25 @@ export const OrderTable = () => {
         .order('heure_commande', { ascending: false });
 
       if (error) {
-        console.error('Erreur lors de la récupération des commandes:', error);
-        setError("Impossible de récupérer les commandes");
+        console.error('Erreur détaillée lors de la récupération des commandes:', error);
+        setError("Impossible de récupérer les commandes depuis la base de données");
         throw error;
       }
 
-      if (data) {
+      // Formater les données pour l'affichage
+      if (data && data.length > 0) {
         const formattedOrders = data.map((order: any) => ({
           ...order,
           table_numero: order.table?.numero || 0,
         }));
-        console.log('Commandes récupérées:', formattedOrders);
         setOrders(formattedOrders);
+        console.log('Commandes récupérées:', formattedOrders);
+      } else {
+        console.log('Aucune commande trouvée dans la base de données');
+        setOrders([]);
       }
     } catch (error) {
-      console.error('Erreur détaillée:', error);
+      console.error('Erreur lors de la récupération des commandes:', error);
       toast({
         variant: "destructive",
         title: "Erreur",
@@ -92,9 +99,9 @@ export const OrderTable = () => {
   useEffect(() => {
     fetchOrders();
 
-    // Configuration du canal temps réel pour les mises à jour de commandes
-    const channel = supabase
-      .channel('order-updates')
+    // Mise en place de l'écoute en temps réel des changements sur la table commandes
+    const subscription = supabase
+      .channel('schema-db-changes')
       .on(
         'postgres_changes',
         {
@@ -104,13 +111,14 @@ export const OrderTable = () => {
         },
         (payload) => {
           console.log('Changement détecté dans les commandes:', payload);
+          // Rafraîchir les commandes quand il y a un changement
           fetchOrders();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(subscription);
     };
   }, []);
 

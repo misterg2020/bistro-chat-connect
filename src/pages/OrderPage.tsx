@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -25,6 +26,7 @@ const OrderPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Récupérer le numéro de table depuis l'URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const tableParam = params.get("table");
@@ -40,12 +42,14 @@ const OrderPage = () => {
       navigate('/');
     }
     
+    // Récupérer les articles du panier depuis le sessionStorage
     const storedCart = sessionStorage.getItem("cartItems");
     if (storedCart) {
       setCartItems(JSON.parse(storedCart));
     }
   }, [location.search, navigate, toast]);
 
+  // Écouter les changements de statut pour cette commande en temps réel
   useEffect(() => {
     if (orderId) {
       const fetchOrderStatus = async () => {
@@ -62,6 +66,7 @@ const OrderPage = () => {
       
       fetchOrderStatus();
       
+      // Mise en place de l'écoute en temps réel des changements
       const subscription = supabase
         .channel('order-status-changes')
         .on(
@@ -128,6 +133,7 @@ const OrderPage = () => {
       return;
     }
     
+    // Ouvrir la modal de paiement
     setIsPaymentModalOpen(true);
   };
 
@@ -139,34 +145,49 @@ const OrderPage = () => {
     
     try {
       if (!tableNumber) {
-        throw new Error("Table non spécifiée");
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: "Table non spécifiée",
+        });
+        setIsSubmitting(false);
+        return;
       }
       
-      console.log("Soumission de la commande pour la table:", tableNumber);
+      console.log("Soumission de la commande avec la table:", tableNumber);
       
+      // Création ou vérification de la table
       let tableId;
+      
+      // Vérifier si la table existe déjà
       const { data: existingTable, error: tableError } = await supabase
         .from("tables")
         .select("id")
         .eq("numero", tableNumber)
         .single();
       
-      if (tableError || !existingTable) {
+      if (tableError) {
+        console.log("Table non trouvée, création d'une nouvelle table");
+        
+        // Créer une nouvelle table
         const { data: newTable, error: createError } = await supabase
           .from("tables")
           .insert({ numero: tableNumber })
-          .select()
-          .single();
+          .select();
         
-        if (createError || !newTable) {
+        if (createError || !newTable || newTable.length === 0) {
+          console.error("Erreur lors de la création de la table:", createError);
           throw new Error("Échec de la création de la table");
         }
         
-        tableId = newTable.id;
+        tableId = newTable[0].id;
+        console.log("Nouvelle table créée avec ID:", tableId);
       } else {
         tableId = existingTable.id;
+        console.log("Table existante trouvée avec ID:", tableId);
       }
       
+      // Formater les plats pour enregistrement
       const platsData = cartItems.map(item => ({
         id: item.plat.id,
         nom: item.plat.nom,
@@ -174,6 +195,14 @@ const OrderPage = () => {
         quantity: item.quantity
       }));
       
+      console.log("Données de commande à enregistrer:", {
+        table_id: tableId,
+        plats: platsData,
+        statut: "en attente",
+        methode_paiement: method
+      });
+      
+      // Enregistrer la commande avec le mode de paiement
       const { data: orderData, error: orderError } = await supabase
         .from("commandes")
         .insert({
@@ -183,20 +212,25 @@ const OrderPage = () => {
           methode_paiement: method,
           heure_commande: new Date().toISOString()
         })
-        .select()
-        .single();
+        .select();
 
-      if (orderError || !orderData) {
-        throw new Error("Échec de l'enregistrement de la commande");
+      if (orderError) {
+        console.error("Erreur commande:", orderError);
+        throw new Error(`Échec de l'enregistrement de la commande: ${orderError.message}`);
       }
       
-      console.log("Commande enregistrée avec succès:", orderData);
-      setOrderId(orderData.id);
+      if (!orderData || orderData.length === 0) {
+        throw new Error("Aucune données retournées après l'insertion");
+      }
+      
+      // Commande enregistrée avec succès
+      console.log("Commande enregistrée avec succès:", orderData[0]);
+      setOrderId(orderData[0].id);
       setOrderStatus('en attente');
       setOrderSubmitted(true);
       
+      // Nettoyer le sessionStorage
       sessionStorage.removeItem("cartItems");
-      setCartItems([]);
       
       toast({
         title: "Commande confirmée",
@@ -205,11 +239,11 @@ const OrderPage = () => {
       
     } catch (error: any) {
       console.error("Erreur lors de l'enregistrement de la commande:", error);
-      setError(error.message);
+      setError(error.message || "Un problème est survenu lors de l'enregistrement de la commande");
       toast({
         variant: "destructive",
         title: "Erreur",
-        description: error.message,
+        description: error.message || "Un problème est survenu lors de l'enregistrement de la commande.",
       });
     } finally {
       setIsSubmitting(false);

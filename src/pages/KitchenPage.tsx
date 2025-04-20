@@ -25,6 +25,11 @@ const KitchenPage = () => {
     localStorage.setItem("kitchen_authenticated", "true");
   };
 
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("kitchen_authenticated");
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-zinc-50 items-center justify-center">
@@ -64,6 +69,14 @@ const KitchenPage = () => {
                 </video>
               </div>
               <div className="p-6 bg-gradient-to-b from-white to-purple-50">
+                <div className="flex justify-end mb-4">
+                  <button 
+                    onClick={handleLogout} 
+                    className="text-sm text-gray-500 hover:text-primary transition-colors"
+                  >
+                    Se déconnecter
+                  </button>
+                </div>
                 <OrderTable />
               </div>
             </Card>

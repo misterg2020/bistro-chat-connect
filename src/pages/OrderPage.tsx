@@ -22,6 +22,7 @@ const OrderPage = () => {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [orderId, setOrderId] = useState("");
   const [orderStatus, setOrderStatus] = useState<Commande['statut'] | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Récupérer le numéro de table depuis l'URL
   useEffect(() => {
@@ -30,6 +31,13 @@ const OrderPage = () => {
     
     if (tableParam) {
       setTableNumber(parseInt(tableParam, 10));
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Table non spécifiée",
+        description: "Veuillez scanner le QR code de votre table.",
+      });
+      navigate('/');
     }
     
     // Récupérer les articles du panier depuis le sessionStorage
@@ -37,7 +45,7 @@ const OrderPage = () => {
     if (storedCart) {
       setCartItems(JSON.parse(storedCart));
     }
-  }, [location.search]);
+  }, [location.search, navigate, toast]);
 
   // Écouter les changements de statut pour cette commande en temps réel
   useEffect(() => {
@@ -130,123 +138,90 @@ const OrderPage = () => {
   const handlePaymentConfirm = async (method: string) => {
     setIsPaymentModalOpen(false);
     setPaymentMethod(method);
+    setIsSubmitting(true);
     
     try {
-      // Si on n'a pas encore créé les tables dans Supabase, on simule la confirmation de commande
       if (!tableNumber) {
         toast({
           variant: "destructive",
           title: "Erreur",
           description: "Table non spécifiée",
         });
+        setIsSubmitting(false);
         return;
       }
       
-      try {
-        // Récupérer l'ID de la table
-        const { data: tableData, error: tableError } = await supabase
+      // Création ou vérification de la table
+      let tableId;
+      
+      // Vérifier si la table existe déjà
+      const { data: existingTable, error: tableError } = await supabase
+        .from("tables")
+        .select("id")
+        .eq("numero", tableNumber)
+        .single();
+      
+      if (tableError) {
+        console.log("Table non trouvée, création d'une nouvelle table");
+        
+        // Créer une nouvelle table
+        const { data: newTable, error: createError } = await supabase
           .from("tables")
-          .select("id")
-          .eq("numero", tableNumber)
-          .single();
-        
-        if (tableError) {
-          console.error("Erreur table:", tableError);
-          // Création d'une table temporaire pour la démonstration
-          const { data: newTable, error: newTableError } = await supabase
-            .from("tables")
-            .insert({ numero: tableNumber })
-            .select();
-            
-          if (newTableError || !newTable) {
-            console.error("Erreur création table:", newTableError);
-            throw newTableError;
-          }
-          
-          // Utiliser la nouvelle table
-          const tableId = newTable[0].id;
-          
-          // Formater les plats pour enregistrement
-          const platsData = cartItems.map(item => ({
-            id: item.plat.id,
-            nom: item.plat.nom,
-            prix: item.plat.prix,
-            quantity: item.quantity
-          }));
-          
-          // Enregistrer la commande avec le mode de paiement
-          const { data: orderData, error: orderError } = await supabase
-            .from("commandes")
-            .insert({
-              table_id: tableId,
-              plats: platsData,
-              statut: "en attente",
-              methode_paiement: method,
-              heure_commande: new Date().toISOString()
-            })
-            .select();
-
-          if (orderError) {
-            console.error("Erreur commande:", orderError);
-            throw orderError;
-          }
-          
-          // Commande enregistrée avec succès
-          setOrderId(orderData[0].id);
-          setOrderStatus('en attente');
-          setOrderSubmitted(true);
-          
-          // Nettoyer le sessionStorage
-          sessionStorage.removeItem("cartItems");
-          
-          toast({
-            title: "Commande confirmée",
-            description: "Votre commande a été envoyée à la cuisine.",
-          });
-          return;
-        }
-        
-        // Formater les plats pour enregistrement
-        const platsData = cartItems.map(item => ({
-          id: item.plat.id,
-          nom: item.plat.nom,
-          prix: item.plat.prix,
-          quantity: item.quantity
-        }));
-        
-        // Enregistrer la commande avec le mode de paiement
-        const { data: orderData, error: orderError } = await supabase
-          .from("commandes")
-          .insert({
-            table_id: tableData.id,
-            plats: platsData,
-            statut: "en attente",
-            methode_paiement: method,
-            heure_commande: new Date().toISOString()
-          })
+          .insert({ numero: tableNumber })
           .select();
-
-        if (orderError) {
-          console.error("Erreur commande:", orderError);
-          throw orderError;
+        
+        if (createError || !newTable) {
+          console.error("Erreur lors de la création de la table:", createError);
+          throw new Error("Échec de la création de la table");
         }
         
-        // Commande enregistrée avec succès
-        setOrderId(orderData[0].id);
-        setOrderStatus('en attente');
-        setOrderSubmitted(true);
-        
-        // Nettoyer le sessionStorage
-        sessionStorage.removeItem("cartItems");
-        
-        toast({
-          title: "Commande confirmée",
-          description: "Votre commande a été envoyée à la cuisine.",
-        });
-      } catch (error) {
-        console.error("Erreur lors de l'enregistrement de la commande:", error);
-        throw error;
+        tableId = newTable[0].id;
+      } else {
+        tableId = existingTable.id;
       }
+      
+      // Formater les plats pour enregistrement
+      const platsData = cartItems.map(item => ({
+        id: item.plat.id,
+        nom: item.plat.nom,
+        prix: item.plat.prix,
+        quantity: item.quantity
+      }));
+      
+      // Enregistrer la commande avec le mode de paiement
+      const { data: orderData, error: orderError } = await supabase
+        .from("commandes")
+        .insert({
+          table_id: tableId,
+          plats: platsData,
+          statut: "en attente",
+          methode_paiement: method,
+          heure_commande: new Date().toISOString()
+        })
+        .select();
+
+      if (orderError) {
+        console.error("Erreur commande:", orderError);
+        throw new Error("Échec de l'enregistrement de la commande");
+      }
+      
+      if (!orderData || orderData.length === 0) {
+        throw new Error("Aucune données retournées après l'insertion");
+      }
+      
+      // Commande enregistrée avec succès
+      setOrderId(orderData[0].id);
+      setOrderStatus('en attente');
+      setOrderSubmitted(true);
+      
+      // Nettoyer le sessionStorage
+      sessionStorage.removeItem("cartItems");
+      
+      toast({
+        title: "Commande confirmée",
+        description: "Votre commande a été envoyée à la cuisine.",
+      });
+      
     } catch (error) {
       console.error("Erreur lors de l'enregistrement de la commande:", error);
       toast({
@@ -254,6 +229,8 @@ const OrderPage = () => {
         title: "Erreur",
         description: "Un problème est survenu lors de l'enregistrement de la commande.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -261,6 +238,15 @@ const OrderPage = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow container py-8">
+        {isSubmitting && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-white p-6 rounded-lg shadow-xl flex flex-col items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mb-4"></div>
+              <p className="text-lg font-medium">Traitement en cours...</p>
+            </div>
+          </div>
+        )}
+        
         {orderSubmitted ? (
           <div>
             <OrderConfirmation 

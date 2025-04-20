@@ -134,26 +134,12 @@ const MenuPage = () => {
       <main className="flex-grow container py-8">
         <h1 className="text-3xl font-bold mb-8">Notre Menu - Table {tableNumber}</h1>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <PlatList searchQuery={searchQuery} onAddToCart={handleAddToCart} />
-          </div>
-
-          {/* Panier Desktop seulement */}
-          <div className="hidden lg:block">
-            <div className="sticky top-24">
-              <Cart
-                items={cartItems}
-                updateQuantity={handleUpdateQuantity}
-                removeItem={handleRemoveItem}
-                onCheckout={handleCheckout}
-              />
-            </div>
-          </div>
+        <div className="grid grid-cols-1 gap-8">
+          <PlatList searchQuery={searchQuery} onAddToCart={handleAddToCart} />
         </div>
 
-        {/* Bouton Panier Mobile (flottant en bas à droite) */}
-        <div className="fixed bottom-4 right-4 z-50 lg:hidden">
+        {/* Bouton Panier (flottant en bas à droite) */}
+        <div className="fixed bottom-4 right-4 z-50">
           <Sheet>
             <SheetTrigger asChild>
               <button className="relative bg-black text-white p-4 rounded-full shadow-xl hover:bg-gray-800">

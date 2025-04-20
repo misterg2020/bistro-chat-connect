@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -15,14 +14,8 @@ const KitchenPage = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Vérifier si l'utilisateur était précédemment authentifié
-    const kitchenAuth = localStorage.getItem("kitchen_authenticated");
-    if (kitchenAuth === "true") {
-      setIsAuthenticated(true);
-    }
     setLoading(false);
 
-    // Vérifier la connexion à la base de données
     const checkConnection = async () => {
       try {
         const { error } = await supabase
@@ -50,12 +43,10 @@ const KitchenPage = () => {
 
   const handleLogin = () => {
     setIsAuthenticated(true);
-    localStorage.setItem("kitchen_authenticated", "true");
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem("kitchen_authenticated");
   };
 
   if (loading) {
@@ -78,7 +69,7 @@ const KitchenPage = () => {
           </div>
           <p className="text-muted-foreground text-lg">Gérez les commandes en temps réel</p>
         </div>
-        
+
         {isAuthenticated ? (
           <div className="max-w-6xl mx-auto">
             <Card className="border-primary/20 shadow-2xl overflow-hidden hover:shadow-purple-200/30 transition duration-300">
